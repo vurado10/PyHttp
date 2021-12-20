@@ -21,3 +21,9 @@ redirect with ascii query
 ARGS: "https://google.com/search?q=cat" -r
 OUTPUT: "Cat" searching result by Google
 
+amazon.com
+ARGS: "https://amazon.com" -r
+
+www.amazon.com
+ARGS: "https://www.amazon.com"
+

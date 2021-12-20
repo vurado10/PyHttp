@@ -21,24 +21,30 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--password")
     args = parser.parse_args()
 
+    output = None
+    if args.output is not None:
+        output = open(args.output, "wb")
+
+    def conf_write(data) -> None:
+        if output is None:
+            print(data)
+            return
+
+        if type(data) != bytes and type(data) != bytearray:
+            raise ValueError("Can't write non bytes data")
+
+        output.write(data)
+
 
     if args.redirect:
         request, response = send_recv_with_redirect(args)
     else:
         requests, response = send_recv(args)
 
-    answer_text_parts = []
+    print()
     if args.aheaders:
-        answer_text_parts.append(response.status_line)
-        answer_text_parts.append(response.headers_str)
+        conf_write(response.status_line.encode(encoding="utf-8"))
+        conf_write(response.headers_str.encode(encoding="utf-8"))
 
     if not args.nbody:
-        answer_text_parts.append(response.body)
-
-    answer_text = "".join(answer_text_parts)
-
-    print()
-    if args.output is not None:
-        print(answer_text, file=open(args.output, "w"))
-    else:
-        print(answer_text)
+        conf_write(response.body_bytes)

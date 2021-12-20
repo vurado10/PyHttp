@@ -80,7 +80,6 @@ class HttpClient:
     def recv_content(self,
                      headers: dict[str, str],
                      start_content: bytes) -> bytes:
-
         content_length_str = HttpMessage.get_header(headers, "Content-Length")
         if content_length_str is not None:
             content_length = int(content_length_str)

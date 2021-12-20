@@ -9,7 +9,7 @@ from http_message import HttpMessage
 from http_response import HttpResponse
 
 status_regex = re.compile(r"HTTP/([.\d]+) (\d+) (.+)")
-header_regex = re.compile(r"([\w-]+):(.+)")
+header_regex = re.compile(r"\s*([\w-]+):(.+)")
 
 
 def convert_dict_to_perc_encoding(d: dict[str, str]) -> str:
@@ -24,6 +24,12 @@ def convert_dict_to_perc_encoding(d: dict[str, str]) -> str:
 def parse_status_and_headers_to_http_response(data: str) \
         -> HttpResponse:
     status_and_headers = data.strip().split("\r\n")
+
+    match = status_regex.match(status_and_headers[0])
+    if match is None:
+        print("ERROR: Can't parse status line")
+        print(status_and_headers)
+        exit(1)
 
     groups = status_regex.match(status_and_headers[0]).groups()
 
