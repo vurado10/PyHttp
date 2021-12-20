@@ -1,7 +1,10 @@
 import re
 import socket
+import time
 import urllib.parse
 from typing import Callable, Generator
+
+import environment
 from http_message import HttpMessage
 from http_response import HttpResponse
 
@@ -49,7 +52,8 @@ def update_progress_bar(max_value: int, current_value: int) -> None:
 
     print("\r" + "#" * progress + " " * (100 - progress)
           + f" {current_value}/{max_value}", end="")
-    # time.sleep(0.5)
+
+    time.sleep(environment.PAUSE_AFTER_PROGRESS_BAR_UPDATE)
 
 
 def recv_all(sock: socket.socket,

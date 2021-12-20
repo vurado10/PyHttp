@@ -35,6 +35,9 @@ class HttpClient:
 
         self.socket.connect((self.url.hostname, self.port))
 
+    def close(self):
+        self.socket.close()
+
     def send_request(self, request: HttpRequest) -> HttpRequest:
         request.path = self.url.path if self.url.path else "/"
         request.query = self.url.query

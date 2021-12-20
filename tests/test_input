@@ -1,2 +1,23 @@
+with netcat
+-----
 ARGS: "http://localhost:5000" --body "car=ford&color=red color" --cookies 'key1=value1' key2=value2 'key3=value 3' --method POST --headers "some-header: some values" --headers "some-header2: header value2" --cookies 'key4=valu e4' -u Vurado -p p12345 -t 5
 OUTPUT: TIMEOUT
+
+progress_bar (too long Content-Length)
+-----
+ARGS: "https://ru.wikipedia.org/wiki/Олмстед,_Фредерик_Ло"
+OUTPUT: gradually update of progress bar
+
+redirect with Content-Length
+-----
+ARGS: https://wikipedia.org/search?q=100 -r
+
+redirect with query
+-----
+ARGS: "https://wikipedia.org/wiki/Олмстед,_Фредерик_Ло" -r
+
+redirect with ascii query
+-----
+ARGS: "https://google.com/search?q=cat" -r
+OUTPUT: "Cat" searching result by Google
+

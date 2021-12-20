@@ -5,7 +5,7 @@ from http_message import HttpMessage
 
 
 class HttpRequest:
-    valid_methods = {"GET", "POST"}
+    valid_methods = {"GET", "POST", "PUT"}
 
     def __init__(self,
                  method: str,
