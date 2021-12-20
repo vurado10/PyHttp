@@ -40,7 +40,7 @@ def parse_status_and_headers_to_http_response(data: str) \
     return result
 
 
-def progress_bar_update(max_value: int, current_value: int) -> None:
+def update_progress_bar(max_value: int, current_value: int) -> None:
     if max_value == 0:
         print("\r" + "0/0", end="")
         return
@@ -61,7 +61,7 @@ def recv_all(sock: socket.socket,
     while result_count != count:
         result_part = sock.recv(count - result_count)
         result_count += len(result_part)
-        result += result
+        result += result_part
 
         if progress_callback is None:
             continue
@@ -78,37 +78,12 @@ def get_next_byte(sock: socket.socket,
 
     i = 0
     while True:
-        try:
-            yield buffer[i]
-        except IndexError:
-            print(f"INDEX {i}, Buffer len {len(buffer)}")
+        yield buffer[i]
 
         i += 1
         if i == len(buffer):
             buffer = sock.recv(buffer_len)
             i = 0
-
-
-# def get_tokens(sock: socket.socket,
-#                start_content: bytes) -> Generator[bytes, None, None]:
-#     is_potential_token = False
-#     token = bytearray()
-#     for bt in get_next_byte(sock, start_content):
-#         if is_potential_token:
-#             if bt == 10:  # \n
-#                 yield token
-#             else:
-#                 token.append(13)
-#                 token.append(bt)
-#
-#             is_potential_token = False
-#             continue
-#
-#         if bt == 13:  # \r
-#             is_potential_token = True
-#             continue
-#
-#         token.append(bt)
 
 
 def get_chunks(sock: socket.socket,
@@ -125,7 +100,7 @@ def get_chunks(sock: socket.socket,
             if is_potential_line_end:
                 if bt == 10:  # \n
                     length = int(length_token.decode(encoding="utf-8"), 16)
-                    print(length)
+                    length_token = bytearray()
                     if length == 0:
                         break
 
@@ -145,7 +120,6 @@ def get_chunks(sock: socket.socket,
             continue
 
         chunk.append(bt)
-        print(f"Expected: {length}; Was: {len(chunk)}")
 
         if len(chunk) == length + 2:
             yield chunk[:-2]
@@ -156,29 +130,6 @@ def get_chunks(sock: socket.socket,
 def recv_chunked_content(sock: socket.socket,
                          start_content: bytes) -> bytes:
     return b''.join(get_chunks(sock, start_content))
-
-
-# def recv_chunked_content(sock: socket.socket,
-#                          start_content: bytes) -> bytes:
-#     content = b''
-#     is_length = True
-#
-#     summary_length = 0
-#
-#     for token in get_tokens(sock, start_content):
-#         if is_length:
-#             length = int(token.decode(encoding="utf-8"), 16)
-#             if length == 0:
-#                 break
-#             summary_length += length
-#             is_length = False
-#             continue
-#
-#         content += token
-#
-#         is_length = True
-#
-#     return content
 
 
 def headers_to_str(headers: dict[str, str]) -> str:

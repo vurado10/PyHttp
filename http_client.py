@@ -1,11 +1,8 @@
-import re
 import socket
 import ssl
 import urllib.parse
-import http_request
-from typing import Optional, Any
-
 import utilities
+from typing import Optional
 from http_message import HttpMessage
 from http_request import HttpRequest
 from http_response import HttpResponse
@@ -82,12 +79,14 @@ class HttpClient:
         content_length_str = HttpMessage.get_header(headers, "Content-Length")
         if content_length_str is not None:
             content_length = int(content_length_str)
-            utilities.progress_bar_update(content_length, len(start_content))
+            utilities.update_progress_bar(content_length, len(start_content))
 
             return start_content + utilities.recv_all(
                 self.socket,
                 int(content_length_str) - len(start_content),
-                lambda x, y: utilities.progress_bar_update(x, content_length))
+                lambda mx, cr:
+                utilities.update_progress_bar(content_length,
+                                              len(start_content) + cr))
 
         transfer_encoding = HttpMessage.get_header(headers,
                                                    "Transfer-Encoding")

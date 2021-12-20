@@ -28,7 +28,7 @@ class HttpResponse:
 
     @property
     def content(self) -> str:
-        return self.message.body.decode(encoding="utf-8")
+        return self.message.body.decode(encoding="utf-8", errors="ignore")
 
     @property
     def content_bytes(self) -> bytes:
