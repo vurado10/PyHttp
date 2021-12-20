@@ -15,7 +15,7 @@ def convert_dict_to_perc_encoding(d: dict[str, str]) -> str:
     for key, value in d.items():
         result_parts.append(key + "=" + value)
 
-    return urllib.parse.quote('&'.join(result_parts))
+    return urllib.parse.quote('&'.join(result_parts), safe="&=")
 
 
 def parse_status_and_headers_to_http_response(data: str) \

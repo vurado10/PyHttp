@@ -9,7 +9,7 @@ from http_request import HttpRequest
 
 
 def prepare_body(body: str) -> bytes:
-    return urllib.parse.quote(body).encode(encoding="utf-8")
+    return urllib.parse.quote(body, safe="&=").encode(encoding="utf-8")
 
 
 def prepare_headers(headers_list: list) -> dict[str, str]:
@@ -46,6 +46,7 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--redirect", action="store_true")
     parser.add_argument("--aheaders", action="store_true")
     parser.add_argument("--nbody", action="store_true")
+    parser.add_argument("--srq", action="store_true", help="show sent request")
     parser.add_argument("-u", "--username")
     parser.add_argument("-p", "--password")
     args = parser.parse_args()
@@ -61,7 +62,11 @@ if __name__ == "__main__":
     message = HttpMessage(prepare_headers(args.headers),
                           prepare_body(args.body))
 
-    message.headers["Cookie"] = prepare_cookies(args.cookies)
+    if args.body:
+        message.headers["Content-Type"] = "application/x-www-form-urlencoded"
+
+    if args.cookies:
+        message.headers["Cookie"] = prepare_cookies(args.cookies)
 
     if args.username is not None and args.password is not None:
         message.headers["Authorization"] = \
@@ -70,9 +75,17 @@ if __name__ == "__main__":
 
     request = HttpRequest(args.method.upper(), "", "", message)
 
-    client.send_request(request)
+    sent_request = client.send_request(request)
 
-    response = client.get_response()
+    if args.srq:
+        print(sent_request)
+
+    response = None
+    try:
+        response = client.get_response()
+    except socket.timeout:
+        print("#####TIMEOUT#####")
+        exit(1)
 
     answer_text_parts = []
     if args.aheaders:
@@ -80,7 +93,7 @@ if __name__ == "__main__":
         answer_text_parts.append(response.headers_str)
 
     if not args.nbody:
-        answer_text_parts.append(response.content)
+        answer_text_parts.append(response.body)
 
     answer_text = "".join(answer_text_parts)
 

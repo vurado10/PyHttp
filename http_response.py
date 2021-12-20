@@ -15,7 +15,7 @@ class HttpResponse:
 
 
     def __str__(self) -> str:
-        return self.status_line + self.headers_str + self.content
+        return self.status_line + self.headers_str + self.body
 
 
     @property
@@ -27,9 +27,9 @@ class HttpResponse:
         return utilities.headers_to_str(self.message.headers)
 
     @property
-    def content(self) -> str:
+    def body(self) -> str:
         return self.message.body.decode(encoding="utf-8", errors="ignore")
 
     @property
-    def content_bytes(self) -> bytes:
+    def body_bytes(self) -> bytes:
         return self.message.body

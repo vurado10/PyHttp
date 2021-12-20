@@ -35,7 +35,7 @@ class HttpClient:
 
         self.socket.connect((self.url.hostname, self.port))
 
-    def send_request(self, request: HttpRequest):
+    def send_request(self, request: HttpRequest) -> HttpRequest:
         request.path = self.url.path if self.url.path else "/"
         request.query = self.url.query
 
@@ -46,6 +46,8 @@ class HttpClient:
             str(len(request.message.body))
 
         self.socket.sendall(request.to_bytes())
+
+        return request
 
     def get_response(self) -> HttpResponse:
         headers, content = self.recv_status_and_headers()

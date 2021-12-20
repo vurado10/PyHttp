@@ -19,6 +19,27 @@ class HttpRequest:
         self.message = message
         self.http_version = http_version
 
+    @property
+    def start_line(self) -> str:
+        start_str = f"{self.method} {self.path}"
+        start_str += "?" + urllib.parse.quote(self.query, safe='=&') \
+            if self.query \
+            else ""
+        start_str += f" HTTP/{self.http_version}\r\n"
+
+        return start_str
+
+    @property
+    def headers_str(self) -> str:
+        return utilities.headers_to_str(self.message.headers)
+
+    @property
+    def body(self) -> str:
+        return self.message.body.decode(encoding="utf-8", errors="ignore")
+
+    def __str__(self) -> str:
+        return self.start_line + self.headers_str + self.body
+
     @staticmethod
     def validate_method_name(name: str) -> str:
         if name not in HttpRequest.valid_methods:
@@ -31,10 +52,7 @@ class HttpRequest:
         return uri
 
     def to_bytes(self) -> bytes:
-        start_str = f"{self.method} {self.path}"
-        start_str += "?" + urllib.parse.quote(self.query) if self.query else ""
-        start_str += f" HTTP/{self.http_version}\r\n"
-
-        return start_str.encode(encoding="utf-8") + self.message.to_bytes()
+        return self.start_line.encode(encoding="utf-8") \
+               + self.message.to_bytes()
 
 
