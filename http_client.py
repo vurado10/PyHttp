@@ -1,68 +1,102 @@
 import re
 import socket
 import ssl
-
+import urllib.parse
 import http_request
+from typing import Optional, Any
+
+import utilities
+from http_message import HttpMessage
 from http_request import HttpRequest
+from http_response import HttpResponse
 
 
-content_length_regex = re.compile(r"Content-Length[:]\s*(\d+)\r\n")
-recv_buffer_size = 65536
+class HttpClient:
+    port_by_protocol = {
+        "http": 80,
+        "https": 443
+    }
 
+    def __init__(self,
+                 url: str,
+                 operations_timeout_sec: Optional[float] = None):
+        self.url: urllib.parse.ParseResult = urllib.parse.urlparse(url)
+        self.protocol = self.url.scheme or "https"
+        self.port = self.url.port or HttpClient.port_by_protocol[self.protocol]
+        self.socket: Optional[socket.socket] = None
+        self.timeout_sec = operations_timeout_sec
 
-port_by_protocol = {
-    "http": 80,
-    "https": 443
-}
+    def connect(self):
+        if self.socket is not None:
+            raise RuntimeError("Already connected")
 
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if self.protocol == "https":
+            self.socket = ssl.wrap_socket(self.socket)
 
-class HttpError(Exception):
-    ...
+        self.socket.settimeout(self.timeout_sec)
 
+        self.socket.connect((self.url.hostname, self.port))
 
-def get(url: str, timeout_sec: float = 15.0):
-    request = http_request.HttpRequest(url)
+    def send_request(self, request: HttpRequest):
+        request.path = self.url.path if self.url.path else "/"
+        request.query = self.url.query
 
-    return get_request(request, timeout_sec)
+        if float(request.http_version) >= 1.1:
+            request.message.headers["Host"] = self.url.hostname
 
+        request.message.headers["Content-Length"] = \
+            str(len(request.message.body))
 
-def get_request(http_request: HttpRequest, timeout_sec: float = 15.0) -> str:
-    protocol = http_request.url.scheme or "https"
+        self.socket.sendall(request.to_bytes())
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    if protocol == "https":
-        sock = ssl.wrap_socket(sock)
+    def get_response(self) -> HttpResponse:
+        headers, content = self.recv_status_and_headers()
 
-    sock.settimeout(timeout_sec)
+        response = \
+            utilities.parse_status_and_headers_to_http_response(headers)
 
-    port = http_request.url.port or port_by_protocol[protocol]
+        response.message.body = self.recv_content(response.message.headers,
+                                                  content)
 
-    sock.connect((http_request.url.hostname, port))
-    request_bytes = http_request.to_bytes()
-    sock.sendall(request_bytes)
+        return response
 
-    # TODO: optimization
-    response_headers = b''
-    blankline_index = -1
-    while blankline_index == -1:
-        response_headers += sock.recv(recv_buffer_size)
-        blankline_index = response_headers.find(b'\r\n\r\n')
+    def recv_status_and_headers(self) -> tuple[str, bytes]:
+        response_headers = bytes()
+        blankline_index = -1
+        while blankline_index == -1:
+            # TODO: more bytes in buffer
+            response_headers += self.socket.recv(1000)
+            blankline_index = response_headers.find(b'\r\n\r\n')
 
-    content_parts = []
-    content_count = len(response_headers) - blankline_index - 4
-    headers_str = response_headers.decode(encoding="utf-8")
+        headers_str = response_headers[:blankline_index + 4] \
+            .decode(encoding="utf-8")
+        content = response_headers[blankline_index + 4:]
 
-    match = content_length_regex.search(headers_str)
-    if match is None:
-        raise HttpError("No Content-Length header")
+        return headers_str, content
 
-    content_length = int(match.group(1))
+    def recv_content(self,
+                     headers: dict[str, str],
+                     start_content: bytes) -> bytes:
 
-    while content_count != content_length:
-        content_part = sock.recv(recv_buffer_size)
-        content_count += len(content_part)
-        content_parts.append(content_part)
+        content_length_str = HttpMessage.get_header(headers, "Content-Length")
+        if content_length_str is not None:
+            content_length = int(content_length_str)
+            utilities.progress_bar_update(content_length, len(start_content))
 
-    return headers_str + b''.join(content_parts).decode(encoding="utf-8")
+            return start_content + utilities.recv_all(
+                self.socket,
+                int(content_length_str) - len(start_content),
+                lambda x, y: utilities.progress_bar_update(x, content_length))
 
+        transfer_encoding = HttpMessage.get_header(headers,
+                                                   "Transfer-Encoding")
 
+        if transfer_encoding is None:
+            raise RuntimeError("No transfer-encoding")
+
+        if transfer_encoding.lower() == "chunked":
+            return utilities.recv_chunked_content(self.socket, start_content)
+
+        raise RuntimeError(f"Can't parse body "
+                           f"transfer-encoding: {transfer_encoding}")
