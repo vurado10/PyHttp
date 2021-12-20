@@ -54,5 +54,3 @@ class HttpRequest:
     def to_bytes(self) -> bytes:
         return self.start_line.encode(encoding="utf-8") \
                + self.message.to_bytes()
-
-
