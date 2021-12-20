@@ -8,7 +8,7 @@ import environment
 from http_message import HttpMessage
 from http_response import HttpResponse
 
-status_regex = re.compile(r"HTTP/([.\d]+) (\d+) (.+)")
+status_regex = re.compile(r"HTTP/([.\d]+) (\d+) (.*)")
 header_regex = re.compile(r"\s*([\w-]+):(.+)")
 
 
