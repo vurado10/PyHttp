@@ -95,16 +95,26 @@ def get_next_byte(sock: socket.socket,
             i = 0
 
 
-def get_chunks(sock: socket.socket,
-               start_content: bytes) -> Generator[bytes, None, None]:
-    chunk = bytearray()
+def get_chunked_content(sock: socket.socket,
+                        start_content: bytes,
+                        buffer_size: int = 1024) \
+        -> Generator[bytes, None, None]:
+    buffer = bytearray()
 
     is_length = True
     length_token = bytearray()
     length = -1
+    chunk_current_lenght = 0
     is_potential_line_end = False
+    is_chunk_separator = False
+    chunk_separator_length = 0
 
     for bt in get_next_byte(sock, start_content):
+        if is_chunk_separator:
+            chunk_separator_length += 1
+            if chunk_separator_length == 2:
+                is_chunk_separator = False
+            continue
         if is_length:
             if is_potential_line_end:
                 if bt == 10:  # \n
@@ -128,17 +138,27 @@ def get_chunks(sock: socket.socket,
             length_token.append(bt)
             continue
 
-        chunk.append(bt)
+        buffer.append(bt)
+        chunk_current_lenght += 1
 
-        if len(chunk) == length + 2:
-            yield chunk[:-2]
-            chunk = bytearray()
+        if len(buffer) == buffer_size:
+            yield buffer
+            buffer = bytearray()
+
+        if chunk_current_lenght == length:
+            chunk_separator_length = 0
+            chunk_current_lenght = 0
+            is_chunk_separator = True
             is_length = True
+
+    if len(buffer) > 0:
+        yield buffer
+
 
 
 def recv_chunked_content(sock: socket.socket,
                          start_content: bytes) -> Iterable[bytes]:
-    return get_chunks(sock, start_content)
+    return get_chunked_content(sock, start_content)
 
 
 def headers_to_str(headers: dict[str, str]) -> str:

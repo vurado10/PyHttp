@@ -30,6 +30,7 @@ if __name__ == "__main__":
     def configured_write(data: Iterable[bytes]) -> None:
         if output is None:
             for part in data:
+                print()
                 print(part)
             return
 
@@ -42,10 +43,10 @@ if __name__ == "__main__":
     else:
         client, requests, response = send_recv(args)
 
-    print()
     if args.aheaders:
         configured_write([response.status_line.encode(encoding="utf-8")])
         configured_write([response.headers_str.encode(encoding="utf-8")])
+
 
     if not args.nbody:
         configured_write(response.body)
