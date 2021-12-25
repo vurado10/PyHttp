@@ -35,8 +35,8 @@ def prepare_basic_auth_data(username: str, password: str) -> str:
 
 
 def send_recv_with_redirect(args: argparse.Namespace) \
-        -> tuple[HttpRequest, HttpResponse]:
-    request, response = send_recv(args)
+        -> tuple[http_client.HttpClient, HttpRequest, HttpResponse]:
+    client, request, response = send_recv(args)
 
     while response.status_code in [301, 302, 303, 307, 308]:
         url = urllib.parse.urlparse(args.url)
@@ -50,12 +50,15 @@ def send_recv_with_redirect(args: argparse.Namespace) \
 
         print()
         print("Redirect to " + args.url)
-        request, response = send_recv(args)
+        client.close()
+        client, request, response = send_recv(args)
 
-    return request, response
+    return client, request, response
 
 
-def send_recv(args: argparse.Namespace) -> tuple[HttpRequest, HttpResponse]:
+def send_recv(args: argparse.Namespace) -> tuple[http_client.HttpClient,
+                                                 HttpRequest,
+                                                 HttpResponse]:
     client = http_client.HttpClient(args.url, args.timeout)
     try:
         client.connect()
@@ -98,6 +101,4 @@ def send_recv(args: argparse.Namespace) -> tuple[HttpRequest, HttpResponse]:
         print("#####TIMEOUT#####")
         exit(1)
 
-    client.close()
-
-    return sent_request, response
+    return client, sent_request, response

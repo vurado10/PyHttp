@@ -1,4 +1,6 @@
 import argparse
+from typing import Iterable
+
 from send_recv_helpers import send_recv_with_redirect, send_recv
 
 
@@ -25,26 +27,25 @@ if __name__ == "__main__":
     if args.output is not None:
         output = open(args.output, "wb")
 
-    def conf_write(data) -> None:
+    def configured_write(data: Iterable[bytes]) -> None:
         if output is None:
-            print(data)
+            for part in data:
+                print(part)
             return
 
-        if type(data) != bytes and type(data) != bytearray:
-            raise ValueError("Can't write non bytes data")
-
-        output.write(data)
+        for part in data:
+            output.write(part)
 
 
     if args.redirect:
-        request, response = send_recv_with_redirect(args)
+        client, request, response = send_recv_with_redirect(args)
     else:
-        requests, response = send_recv(args)
+        client, requests, response = send_recv(args)
 
     print()
     if args.aheaders:
-        conf_write(response.status_line.encode(encoding="utf-8"))
-        conf_write(response.headers_str.encode(encoding="utf-8"))
+        configured_write([response.status_line.encode(encoding="utf-8")])
+        configured_write([response.headers_str.encode(encoding="utf-8")])
 
     if not args.nbody:
-        conf_write(response.body_bytes)
+        configured_write(response.body)

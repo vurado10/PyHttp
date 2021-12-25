@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Iterable
 
 import utilities
 
@@ -6,7 +6,10 @@ import utilities
 class HttpMessage:
     def __init__(self, headers: dict[str, str], body: bytes):
         self.headers: dict[str, str] = headers
-        self.body: bytes = body
+        self.body: Iterable[bytes] = body
+
+    def get_body_bytes(self) -> bytes:
+        return b''.join(self.body)
 
     @staticmethod
     def get_header(headers: dict[str, str],
@@ -21,7 +24,7 @@ class HttpMessage:
         return results[0] if len(results) > 0 else default
 
     def to_bytes(self) -> bytes:
-        return self.__format_headers() + self.body
+        return self.__format_headers() + b''.join(self.body)
 
     def __format_headers(self) -> bytes:
         return utilities.headers_to_str(self.headers).encode(encoding="utf-8")

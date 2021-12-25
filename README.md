@@ -23,3 +23,8 @@ optional arguments:
   -u USERNAME, --username USERNAME
   -p PASSWORD, --password PASSWORD
 ```
+
+Features
+---
+1. Контент не считывается без необходимости
+(например, при автоматическом перенаправлении считывается только заголовок)

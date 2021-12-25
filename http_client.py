@@ -1,8 +1,9 @@
+import itertools
 import socket
 import ssl
 import urllib.parse
 import utilities
-from typing import Optional
+from typing import Optional, Iterable
 from http_message import HttpMessage
 from http_request import HttpRequest
 from http_response import HttpResponse
@@ -46,7 +47,7 @@ class HttpClient:
             request.message.headers["Host"] = self.url.hostname
 
         request.message.headers["Content-Length"] = \
-            str(len(request.message.body))
+            str(len(request.message.get_body_bytes()))
 
         self.socket.sendall(request.to_bytes())
 
@@ -79,18 +80,22 @@ class HttpClient:
 
     def recv_content(self,
                      headers: dict[str, str],
-                     start_content: bytes) -> bytes:
+                     start_content: bytes) -> Iterable[bytes]:
         content_length_str = HttpMessage.get_header(headers, "Content-Length")
         if content_length_str is not None:
             content_length = int(content_length_str)
             utilities.update_progress_bar(content_length, len(start_content))
 
-            return start_content + utilities.recv_all(
-                self.socket,
-                int(content_length_str) - len(start_content),
-                lambda mx, cr:
-                utilities.update_progress_bar(content_length,
-                                              len(start_content) + cr))
+            return itertools.chain(
+                [start_content],
+                utilities.recv_all(
+                    self.socket,
+                    int(content_length_str) - len(start_content),
+                    lambda mx, cr:
+                    utilities.update_progress_bar(content_length,
+                                                  len(start_content) + cr)
+                )
+            )
 
         transfer_encoding = HttpMessage.get_header(headers,
                                                    "Transfer-Encoding")

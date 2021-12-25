@@ -2,7 +2,7 @@ import re
 import socket
 import time
 import urllib.parse
-from typing import Callable, Generator
+from typing import Callable, Generator, Iterable
 
 import environment
 from http_message import HttpMessage
@@ -63,22 +63,21 @@ def update_progress_bar(max_value: int, current_value: int) -> None:
 
 
 def recv_all(sock: socket.socket,
-             count: int,
-             progress_callback: Callable[[int, int], None] = None) -> bytes:
-    result = b''
-    result_count = 0
+             length: int,
+             progress_callback: Callable[[int, int], None] = None,
+             part_length: int = 1024) -> Iterable[bytes]:
+    result_length = 0
 
-    while result_count != count:
-        result_part = sock.recv(count - result_count)
-        result_count += len(result_part)
-        result += result_part
+    while result_length != length:
+        result_part = sock.recv(part_length)
+        result_length += len(result_part)
 
         if progress_callback is None:
             continue
 
-        progress_callback(count, result_count)
+        progress_callback(length, result_length)
 
-    return result
+        yield result_part
 
 
 def get_next_byte(sock: socket.socket,
@@ -138,8 +137,8 @@ def get_chunks(sock: socket.socket,
 
 
 def recv_chunked_content(sock: socket.socket,
-                         start_content: bytes) -> bytes:
-    return b''.join(get_chunks(sock, start_content))
+                         start_content: bytes) -> Iterable[bytes]:
+    return get_chunks(sock, start_content)
 
 
 def headers_to_str(headers: dict[str, str]) -> str:

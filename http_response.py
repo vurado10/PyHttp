@@ -1,3 +1,5 @@
+from typing import Iterable
+
 import utilities
 from http_message import HttpMessage
 
@@ -15,7 +17,7 @@ class HttpResponse:
 
 
     def __str__(self) -> str:
-        return self.status_line + self.headers_str + self.body
+        return self.status_line + self.headers_str
 
 
     @property
@@ -27,9 +29,5 @@ class HttpResponse:
         return utilities.headers_to_str(self.message.headers)
 
     @property
-    def body(self) -> str:
-        return self.message.body.decode(encoding="utf-8", errors="ignore")
-
-    @property
-    def body_bytes(self) -> bytes:
+    def body(self) -> Iterable[bytes]:
         return self.message.body
